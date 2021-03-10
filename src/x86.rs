@@ -91,22 +91,32 @@ impl Environment {
 fn compile(sm_code: Vec<sm::Instr>) -> Result<(Vec<Instr>, Environment), CompilationError> {
 
     fn compile_instr(instr: sm::Instr, env: &mut Environment) -> Result<Vec<Instr>, CompilationError> {
+
+        fn alter_opnd_to_register_if_mem(opnd: Opnd) -> (Opnd, Vec<Instr>) {
+            match &opnd {
+                &Opnd::Stack(_) => (EDX, vec![Instr::Mov(opnd, EDX)]),
+                _ => (opnd, Vec::new())
+            }
+        }
+
         Ok(match instr {
             sm::Instr::Push(x) => {
                 let opnd = env.allocate();
                 vec![Instr::Mov(Opnd::Const(x), opnd)]
             }
             sm::Instr::ST(s) => {
-                let opnd = env.pop()?;
+                let (opnd, mut seq) = alter_opnd_to_register_if_mem(env.pop()?);
                 env.global(s.clone());
-                vec![Instr::Mov(opnd, Opnd::Variable(s))]
+                seq.append(vec![Instr::Mov(opnd, Opnd::Variable(s))].as_mut());
+                seq
             }
             sm::Instr::LD(s) => {
-                let opnd = env.allocate();
+                let (opnd, mut seq) = alter_opnd_to_register_if_mem(env.allocate());
                 if !env.var_declared(&s) {
                     return Err(CompilationError::VariableNotDeclared(s))
                 }
-                vec![Instr::Mov(Opnd::Variable(s), opnd)]
+                seq.append(vec![Instr::Mov(Opnd::Variable(s), opnd)].as_mut());
+                seq
             }
             sm::Instr::Read => {
                 let opnd = env.allocate();
@@ -127,6 +137,14 @@ fn compile(sm_code: Vec<sm::Instr>) -> Result<(Vec<Instr>, Environment), Compila
         let r = env.pop()?;
         let l = env.pop()?;
         let result = env.allocate();
+
+        fn alter_l_if_both_mem(l: Opnd, r: &Opnd) -> (Opnd, Vec<Instr>) {
+            match (&l, r) {
+                (Opnd::Register(_), _) | (_, Opnd::Register(_)) | (Opnd::Const(_), _) => (l, Vec::new()),
+                _ => (EDX, vec![Instr::Mov(l, EDX)])
+            }
+        }
+
         Ok(match op {
             BinOp::Add | BinOp::Mul | BinOp::Sub => {
                 let instr = match op {
@@ -136,12 +154,9 @@ fn compile(sm_code: Vec<sm::Instr>) -> Result<(Vec<Instr>, Environment), Compila
                     _ => unreachable!()
                 };
 
-                match (&l, &r) {
-                    (&Opnd::Stack(_), &Opnd::Stack(_)) => {
-                        vec![Instr::Mov(l, EAX), Instr::BinOp(instr, r, EAX), Instr::Mov(EAX, result)]
-                    }
-                    _ => vec![Instr::BinOp(instr, r, l.clone()), Instr::Mov(l, result)]
-                }
+                let (l, mut seq) = alter_l_if_both_mem(l, &r);
+                seq.append(vec![Instr::BinOp(instr, r, l.clone()), Instr::Mov(l, result)].as_mut());
+                seq
             }
             BinOp::Div => vec![Instr::Mov(l, EAX), Instr::Mov(Opnd::Const(0), EDX),
                                Instr::Div(r), Instr::Mov(EAX, result)],
@@ -158,34 +173,19 @@ fn compile(sm_code: Vec<sm::Instr>) -> Result<(Vec<Instr>, Environment), Compila
                     _ => unreachable!()
                 };
 
-                let mut instr = Vec::new();
+                let (l, mut seq) = alter_l_if_both_mem(l, &r);
 
-                let l = match (&l, &r) {
-                    (&Opnd::Stack(_), &Opnd::Stack(_)) => {
-                        instr.push(Instr::Mov(l, EDX));
-                        EDX
-                    },
-                    _ => l
-                };
-
-                instr.extend(vec![Instr::Mov(Opnd::Const(0), EAX), Instr::BinOp("cmp", r, l),
-                                  Instr::Set(suffix, "al"), Instr::Mov(EAX, result)]);
-                instr
+                seq.append(vec![Instr::Mov(Opnd::Const(0), EAX), Instr::BinOp("cmp", r, l),
+                                Instr::Set(suffix, "al"), Instr::Mov(EAX, result)].as_mut());
+                seq
             }
             BinOp::Or => {
-                let mut instr = Vec::new();
 
-                let l = match (&l, &r) {
-                    (&Opnd::Stack(_), &Opnd::Stack(_)) => {
-                        instr.push(Instr::Mov(l, EDX));
-                        EDX
-                    },
-                    _ => l
-                };
+                let (l, mut seq) = alter_l_if_both_mem(l, &r);
 
-                instr.extend(vec![Instr::Mov(Opnd::Const(0), EAX), Instr::BinOp("orl", r, l),
-                             Instr::Set("nz", "al"), Instr::Mov(EAX, result)]);
-                instr
+                seq.append(vec![Instr::Mov(Opnd::Const(0), EAX), Instr::BinOp("orl", r, l),
+                             Instr::Set("nz", "al"), Instr::Mov(EAX, result)].as_mut());
+                seq
             }
             BinOp::And => vec![Instr::Mov(Opnd::Const(0), EAX), Instr::Mov(Opnd::Const(0), EDX),
                                Instr::BinOp("cmp", Opnd::Const(0), l), Instr::Set("ne", "al"),
