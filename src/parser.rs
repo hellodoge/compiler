@@ -43,6 +43,12 @@ fn parse_stmt(pair: Pair<Rule>) -> Stmt {
 
 fn parse_expr(pair: Pair<Rule>) -> Expr {
     let climber = PrecClimber::new(vec![
+        Operator::new(Rule::cmp_l, Assoc::Left) |
+            Operator::new(Rule::cmp_le, Assoc::Left) |
+            Operator::new(Rule::cmp_g, Assoc::Left) |
+            Operator::new(Rule::cmp_ge, Assoc::Left) |
+            Operator::new(Rule::cmp_e, Assoc::Left) |
+            Operator::new(Rule::cmp_ne, Assoc::Left),
         Operator::new(Rule::add, Assoc::Left) |
             Operator::new(Rule::sub, Assoc::Left),
         Operator::new(Rule::mul, Assoc::Left) |
@@ -59,6 +65,12 @@ fn parse_expr(pair: Pair<Rule>) -> Expr {
             Rule::mul => BinOp::Mul,
             Rule::div => BinOp::Div,
             Rule::mod_ => BinOp::Mod,
+            Rule::cmp_l => BinOp::CmpL,
+            Rule::cmp_le => BinOp::CmpLe,
+            Rule::cmp_g => BinOp::CmpG,
+            Rule::cmp_ge => BinOp::CmpGe,
+            Rule::cmp_e => BinOp::CmpE,
+            Rule::cmp_ne => BinOp::CmpNe,
             _ => unreachable!()
         }, lhs, rhs);
 

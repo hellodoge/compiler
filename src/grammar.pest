@@ -16,12 +16,19 @@ primary = { "(" ~ expr ~ ")" | number | ident }
 
 number = @{ "-"? ~ ASCII_DIGIT+ }
 
-binop = _{ add | mul | sub | div | mod_ }
+binop = _{ add | mul | sub | div | mod_ | cmp_l | cmp_le | cmp_g | cmp_ge | cmp_e | cmp_ne }
 
 add = { "+" }
 mul = { "*" }
 sub = { "-" }
 div = { "/" }
 mod_ = { "%" }
+
+cmp_l = { "<" }
+cmp_le = { "<=" }
+cmp_g = { ">" }
+cmp_ge = { ">=" }
+cmp_e = { "==" }
+cmp_ne = { "!=" }
 
 WHITESPACE = _{ " " | "\t" | NEWLINE  }

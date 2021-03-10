@@ -21,6 +21,12 @@ pub(crate) enum BinOp {
     Sub,
     Div,
     Mod,
+    CmpL,
+    CmpLe,
+    CmpG,
+    CmpGe,
+    CmpE,
+    CmpNe
 }
 
 impl BinOp {

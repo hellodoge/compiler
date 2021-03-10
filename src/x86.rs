@@ -11,6 +11,7 @@ pub(crate) enum Instr {
     Push(Opnd),
     Pop(Opnd),
     Div(Opnd),
+    Set(&'static str, &'static str),
     Call(String),
     Ret,
 }
@@ -146,6 +147,31 @@ fn compile(sm_code: Vec<sm::Instr>) -> Result<(Vec<Instr>, Environment), Compila
                                Instr::Div(r), Instr::Mov(EAX, result)],
             BinOp::Mod => vec![Instr::Mov(l, EAX), Instr::Mov(Opnd::Const(0), EDX),
                                Instr::Div(r), Instr::Mov(EDX, result)],
+            BinOp::CmpL | BinOp::CmpG | BinOp::CmpLe | BinOp::CmpGe | BinOp::CmpE | BinOp::CmpNe => {
+                let suffix = match op {
+                    BinOp::CmpL => "l",
+                    BinOp::CmpG => "g",
+                    BinOp::CmpLe => "le",
+                    BinOp::CmpGe => "ge",
+                    BinOp::CmpE => "e",
+                    BinOp::CmpNe => "ne",
+                    _ => unreachable!()
+                };
+
+                let mut instr = Vec::new();
+
+                let l = match (&l, &r) {
+                    (&Opnd::Stack(_), &Opnd::Stack(_)) => {
+                        instr.push(Instr::Mov(l, EDX));
+                        EDX
+                    },
+                    _ => l
+                };
+
+                instr.extend(vec![Instr::Mov(Opnd::Const(0), EAX), Instr::BinOp("cmp", r, l),
+                                  Instr::Set(suffix, "al"), Instr::Mov(EAX, result)]);
+                instr
+            }
         })
     }
 
@@ -213,6 +239,7 @@ impl std::fmt::Display for Instr {
             Instr::Mov(opnd1, opnd2) => write!(f, "\tmovl\t{},\t{}", opnd1, opnd2),
             Instr::Push(opnd) => write!(f, "\tpushl\t{}", opnd),
             Instr::Pop(opnd) => write!(f, "\tpopl\t{}", opnd),
+            Instr::Set(suf, register) => write!(f, "\tset{}\t%{}", suf, register),
             Instr::Call(func) => write!(f, "\tcall\t{}", func),
             Instr::Ret => write!(f, "\tret")
         }
