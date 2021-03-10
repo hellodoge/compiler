@@ -172,6 +172,25 @@ fn compile(sm_code: Vec<sm::Instr>) -> Result<(Vec<Instr>, Environment), Compila
                                   Instr::Set(suffix, "al"), Instr::Mov(EAX, result)]);
                 instr
             }
+            BinOp::Or => {
+                let mut instr = Vec::new();
+
+                let l = match (&l, &r) {
+                    (&Opnd::Stack(_), &Opnd::Stack(_)) => {
+                        instr.push(Instr::Mov(l, EDX));
+                        EDX
+                    },
+                    _ => l
+                };
+
+                instr.extend(vec![Instr::Mov(Opnd::Const(0), EAX), Instr::BinOp("orl", r, l),
+                             Instr::Set("nz", "al"), Instr::Mov(EAX, result)]);
+                instr
+            }
+            BinOp::And => vec![Instr::Mov(Opnd::Const(0), EAX), Instr::Mov(Opnd::Const(0), EDX),
+                               Instr::BinOp("cmp", Opnd::Const(0), l), Instr::Set("ne", "al"),
+                               Instr::BinOp("cmp", Opnd::Const(0), r), Instr::Set("ne", "dl"),
+                               Instr::BinOp("andl", EAX, EDX), Instr::Mov(EDX, result)]
         })
     }
 

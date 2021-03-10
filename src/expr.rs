@@ -26,7 +26,9 @@ pub(crate) enum BinOp {
     CmpG,
     CmpGe,
     CmpE,
-    CmpNe
+    CmpNe,
+    And,
+    Or
 }
 
 impl BinOp {
