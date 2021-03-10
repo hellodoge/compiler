@@ -1,0 +1,9 @@
+[package]
+name = "compiler"
+version = "0.0.1"
+authors = ["waldemar <hellodoge@tuta.io>"]
+edition = "2018"
+
+[dependencies]
+pest = "2.0"
+pest_derive = "2.0"

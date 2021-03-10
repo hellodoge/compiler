@@ -1,0 +1,27 @@
+
+program = _{ SOI ~ stmt* ~ EOI }
+
+stmt = _{ (read | write | assign) ~ ";" }
+
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC ~ "_")* }
+
+read = { "read" ~ "(" ~ ident ~ ")" }
+write = { "write" ~ "(" ~ expr ~ ")" }
+
+assign = { ident ~ "=" ~ expr }
+
+expr = { primary ~ (binop ~ primary)* }
+
+primary = { "(" ~ expr ~ ")" | number | ident }
+
+number = @{ "-"? ~ ASCII_DIGIT+ }
+
+binop = _{ add | mul | sub | div | mod_ }
+
+add = { "+" }
+mul = { "*" }
+sub = { "-" }
+div = { "/" }
+mod_ = { "%" }
+
+WHITESPACE = _{ " " | "\t" | NEWLINE  }
