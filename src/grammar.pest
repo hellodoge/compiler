@@ -3,7 +3,7 @@ program = _{ SOI ~ stmt* ~ EOI }
 
 stmt = _{ (read | write | assign) ~ ";" }
 
-ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC ~ "_")* }
+ident = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
 read = { "read" ~ "(" ~ ident ~ ")" }
 write = { "write" ~ "(" ~ expr ~ ")" }
