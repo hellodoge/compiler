@@ -12,6 +12,7 @@ pub(crate) enum Instr {
     Pop(Opnd),
     Div(Opnd),
     Set(&'static str, &'static str),
+    Cltd,
     Call(String),
     Ret,
 }
@@ -158,10 +159,9 @@ fn compile(sm_code: Vec<sm::Instr>) -> Result<(Vec<Instr>, Environment), Compila
                 seq.append(vec![Instr::BinOp(instr, r, l.clone()), Instr::Mov(l, result)].as_mut());
                 seq
             }
-            BinOp::Div => vec![Instr::Mov(l, EAX), Instr::Mov(Opnd::Const(0), EDX),
-                               Instr::Div(r), Instr::Mov(EAX, result)],
-            BinOp::Mod => vec![Instr::Mov(l, EAX), Instr::Mov(Opnd::Const(0), EDX),
-                               Instr::Div(r), Instr::Mov(EDX, result)],
+            BinOp::Div | BinOp::Mod => vec![Instr::Mov(l, EAX), Instr::Mov(Opnd::Const(0), EDX),
+                               Instr::Cltd, Instr::Div(r),
+                               Instr::Mov(if op == BinOp::Div {EAX} else {EDX}, result)],
             BinOp::CmpL | BinOp::CmpG | BinOp::CmpLe | BinOp::CmpGe | BinOp::CmpE | BinOp::CmpNe => {
                 let suffix = match op {
                     BinOp::CmpL => "l",
@@ -259,6 +259,7 @@ impl std::fmt::Display for Instr {
             Instr::Push(opnd) => write!(f, "\tpushl\t{}", opnd),
             Instr::Pop(opnd) => write!(f, "\tpopl\t{}", opnd),
             Instr::Set(suf, register) => write!(f, "\tset{}\t%{}", suf, register),
+            Instr::Cltd => write!(f, "\tcltd"),
             Instr::Call(func) => write!(f, "\tcall\t{}", func),
             Instr::Ret => write!(f, "\tret")
         }

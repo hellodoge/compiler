@@ -14,7 +14,7 @@ pub(crate) enum Expr {
     BinOp(BinOp, Box<Expr>, Box<Expr>),
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub(crate) enum BinOp {
     Add,
     Mul,
