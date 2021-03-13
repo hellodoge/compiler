@@ -17,7 +17,8 @@ pub(crate) fn compile_x86(path: std::path::PathBuf, out: std::path::PathBuf) -> 
         Ok((c, v)) => (c, v),
         Err(e) => return Err(e.to_string())
     };
-    let mut outfile = match std::fs::OpenOptions::new().write(true).create(true).open(out) {
+    let mut outfile = match std::fs::OpenOptions::new().write(true)
+        .truncate(true).create(true).open(out) {
         Ok(x) => x,
         Err(e) => return Err(e.to_string())
     };
